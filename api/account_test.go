@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -102,6 +103,94 @@ func TestGetAccountAPI(t *testing.T) {
 	}
 }
 
+func TestCreateAccountAPI(t *testing.T) {
+	account := randomAccount()
+	testCase := []struct {
+		name          string
+		owner         string
+		currency      string
+		buildStubs    func(store *mockdb.MockStore)
+		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:     "OK",
+			owner:    account.Owner,
+			currency: account.Currency,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateAccount(gomock.Any(), gomock.Eq(db.CreateAccountParams{
+						Owner:    account.Owner,
+						Currency: account.Currency,
+						Balance:  0,
+					})).
+					Times(1).
+					Return(account, nil)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name:     "InvalidCurrency",
+			owner:    account.Owner,
+			currency: "CNY",
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateAccount(gomock.Any(), gomock.Eq(db.CreateAccountParams{
+						Owner:    account.Owner,
+						Currency: account.Currency,
+						Balance:  0,
+					})).Times(0).Return(db.Account{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+		{
+			name:     "InternalError",
+			owner:    account.Owner,
+			currency: account.Currency,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateAccount(gomock.Any(), gomock.Eq(db.CreateAccountParams{
+						Owner:    account.Owner,
+						Currency: account.Currency,
+						Balance:  0,
+					})).Times(1).
+					Return(db.Account{}, sql.ErrConnDone)
+			},
+			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+	for i := range testCase {
+		tc := testCase[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+
+			// 传递 JSON 请求体
+			body := gin.H{
+				"owner":    tc.owner,
+				"currency": tc.currency,
+			}
+			bodyBytes, err := json.Marshal(body)
+			require.NoError(t, err)
+
+			request, err := http.NewRequest(http.MethodPost, "/accounts", bytes.NewReader(bodyBytes))
+			request.Header.Set("Content-Type", "application/json")
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkResponse(t, recorder)
+		})
+	}
+}
 func randomAccount() db.Account {
 	return db.Account{
 		ID:       util.RandomInt(1, 1000),
