@@ -7,10 +7,11 @@ import (
 	"SimpleBank/pb"
 	"SimpleBank/util"
 	"database/sql"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	_ "github.com/lib/pq"
 )
