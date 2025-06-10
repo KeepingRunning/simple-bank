@@ -81,7 +81,7 @@ type LoginUserResponse struct {
 	AccessToken           string                 `protobuf:"bytes,3,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	RefreshToken          string                 `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	AccessTokenExpiresAt  *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
-	RefreshTokenExpiredAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=refresh_token_expired_at,json=refreshTokenExpiredAt,proto3" json:"refresh_token_expired_at,omitempty"`
+	RefreshTokenExpiresAt *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt,proto3" json:"refresh_token_expires_at,omitempty"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -151,9 +151,9 @@ func (x *LoginUserResponse) GetAccessTokenExpiresAt() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *LoginUserResponse) GetRefreshTokenExpiredAt() *timestamppb.Timestamp {
+func (x *LoginUserResponse) GetRefreshTokenExpiresAt() *timestamppb.Timestamp {
 	if x != nil {
-		return x.RefreshTokenExpiredAt
+		return x.RefreshTokenExpiresAt
 	}
 	return nil
 }
@@ -174,7 +174,7 @@ const file_rpc_login_user_proto_rawDesc = "" +
 	"\faccess_token\x18\x03 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12Q\n" +
 	"\x17access_token_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x14accessTokenExpiresAt\x12S\n" +
-	"\x18refresh_token_expired_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x15refreshTokenExpiredAtB\x0fZ\rSimpleBank/pbb\x06proto3"
+	"\x18refresh_token_expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x15refreshTokenExpiresAtB\x0fZ\rSimpleBank/pbb\x06proto3"
 
 var (
 	file_rpc_login_user_proto_rawDescOnce sync.Once
@@ -198,7 +198,7 @@ var file_rpc_login_user_proto_goTypes = []any{
 var file_rpc_login_user_proto_depIdxs = []int32{
 	2, // 0: pb.LoginUserResponse.user:type_name -> pb.User
 	3, // 1: pb.LoginUserResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
-	3, // 2: pb.LoginUserResponse.refresh_token_expired_at:type_name -> google.protobuf.Timestamp
+	3, // 2: pb.LoginUserResponse.refresh_token_expires_at:type_name -> google.protobuf.Timestamp
 	3, // [3:3] is the sub-list for method output_type
 	3, // [3:3] is the sub-list for method input_type
 	3, // [3:3] is the sub-list for extension type_name
