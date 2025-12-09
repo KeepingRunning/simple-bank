@@ -39,7 +39,7 @@ func main() {
 	if config.Environment == "development" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
-	
+
 	conn, err := sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal().Err(err).Msg("cannot connect to db")
@@ -137,8 +137,10 @@ func runGatewayServer(config util.Config, store db.Store) {
 		Msg("cannot start gRPC server")
 	}
 
-	log.Info().Msgf("start gRPC server at %s", listener.Addr().String())
-	err = http.Serve(listener, mux)
+	log.Info().
+	Msgf("start http server at %s", listener.Addr().String())
+	handler := gapi.HttpLogger(mux)
+	err = http.Serve(listener, handler)
 	if err != nil {
 		log.Fatal().Err(err).
 		Msg("cannot start http gateway server")
