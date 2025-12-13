@@ -223,7 +223,7 @@ func TestCreateAccountAPI(t *testing.T) {
 			server := NewTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
-			// 传递 JSON 请求体
+			// send Json request
 			body := gin.H{
 				"owner":    tc.owner,
 				"currency": tc.currency,
@@ -256,5 +256,6 @@ func requireBodyMatchAccount(t *testing.T, body *bytes.Buffer, account db.Accoun
 
 	var gotAccount db.Account
 	err = json.Unmarshal(data, &gotAccount)
+	require.NoError(t, err)
 	require.Equal(t, account, gotAccount)
 }
