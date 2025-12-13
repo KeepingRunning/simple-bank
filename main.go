@@ -1,19 +1,22 @@
 package main
 
 import (
-	"os"
 	"SimpleBank/api"
 	db "SimpleBank/db/sqlc"
 	_ "SimpleBank/doc/statik"
 	"SimpleBank/gapi"
 	"SimpleBank/pb"
 	"SimpleBank/util"
+	"SimpleBank/worker"
 	"context"
 	"database/sql"
-	"github.com/rs/zerolog/log"
-	"github.com/rs/zerolog"
 	"net"
 	"net/http"
+	"os"
+
+	"github.com/hibiken/asynq"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/rakyll/statik/fs"
 
@@ -24,8 +27,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	_ "github.com/lib/pq"
 )
@@ -47,9 +50,17 @@ func main() {
 
 	runDBMigration(config.MigrationURL, config.DBSource)
 
+	redisOpt := asynq.RedisClientOpt{
+		Addr: config.RedisAddress,
+	}
+
+	taskDsitributor := worker.NewRedisTaskDistributor(redisOpt)
+
 	store := db.NewStore(conn)
-	go runGatewayServer(config, store)
-	runGrpcServer(config, store)
+
+	go runTaskProcessor(redisOpt, store)
+	go runGatewayServer(config, store, taskDsitributor)
+	runGrpcServer(config, store, taskDsitributor)
 
 }
 
@@ -68,8 +79,18 @@ func runDBMigration(migragionURL string, dbSource string) {
 	log.Info().Msg("db migrated successfully")
 }
 
-func runGrpcServer(config util.Config, store db.Store) {
-	server, err := gapi.NewServer(config, store)
+func runTaskProcessor(redisOpt asynq.RedisClientOpt, store db.Store) {
+	taskprocessor := worker.NewRedisTaskProcessor(redisOpt, store)
+	log.Info().Msg("start task processor")
+	err := taskprocessor.Start()
+	if err != nil {
+		log.Fatal().Err(err).
+		Msg("failed to start task processor")
+	}
+}
+
+func runGrpcServer(config util.Config, store db.Store, distributor worker.TaskDistributor) {
+	server, err := gapi.NewServer(config, store, distributor)
 	if err != nil {
 		log.Fatal().Err(err).
 		Msg("cannot create server")
@@ -93,8 +114,8 @@ func runGrpcServer(config util.Config, store db.Store) {
 	}
 }
 
-func runGatewayServer(config util.Config, store db.Store) {
-	server, err := gapi.NewServer(config, store)
+func runGatewayServer(config util.Config, store db.Store, distributor worker.TaskDistributor) {
+	server, err := gapi.NewServer(config, store, distributor)
 	if err != nil {
 		log.Fatal().Err(err).
 		Msg("cannot create server")
