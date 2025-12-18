@@ -1,6 +1,8 @@
 package worker
 
 import (
+	db "SimpleBank/db/sqlc"
+	"SimpleBank/util"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -56,7 +58,28 @@ func (processor *RedisTaskProcessor) ProcessVerifyEmailTask(ctx context.Context,
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// TODO: send email to user.
+	verifyEmail, err := processor.store.CreateVerifyEmail(ctx, db.CreateVerifyEmailParams{
+		Username:   payload.Username,
+		Email:      payload.Email,
+		SecretCode: util.RandomString(32),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create verify email: %w", err)
+	}
+	
+	subject := "Welcome to Simple Bank! Verify Your Email Address"
+	verifyUrl := fmt.Sprintf("http://simple-bank.org/verify_email?id=%d&secret_code=%s",
+		verifyEmail.ID, verifyEmail.SecretCode)
+	content := fmt.Sprintf(`Hello %s,<br/>
+		Thank your for registering with us!<br/>
+		Please<a href="%s">click here</a> to verify your email address.
+		`, user.Username, verifyUrl)
+	to := []string{payload.Email}
+
+	err = processor.mailer.SendEmail(subject, content, to, nil, nil, nil)
+	if err != nil {
+		return fmt.Errorf("failed to send verify email: %w", err)
+	}
 
 	log.Info().Str("type", t.Type()).Bytes("payload", t.Payload()).
 		Str("email", user.Email).Msg("processed verify email task successfully")
