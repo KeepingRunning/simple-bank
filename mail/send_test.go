@@ -35,5 +35,5 @@ func TestSendEmailWithGmail(t *testing.T) {
 		nil,
 		atachmentFiles,
 	)
-	require.Error(t, err)
+	require.NoError(t, err)
 }
